@@ -3,11 +3,13 @@ package com.example.quick_blue
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -67,7 +69,14 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
         result.success(bluetoothManager.adapter.isEnabled)
       }
       "startScan" -> {
-        bluetoothManager.adapter.bluetoothLeScanner?.startScan(scanCallback)
+        val service = call.argument<String>("service")
+        if (service == null) {
+          val uuid = UUID.fromString(service)
+          val scanFilter = ScanFilter.Builder().setServiceUuid(ParcelUuid(uuid)).build()
+          bluetoothManager.adapter.bluetoothLeScanner?.startScan(listOf(scanFilter), null, scanCallback)
+        }else {
+          bluetoothManager.adapter.bluetoothLeScanner?.startScan(scanCallback)
+        }
         result.success(null)
       }
       "stopScan" -> {

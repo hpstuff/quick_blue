@@ -45,7 +45,7 @@ class QuickBlueLinux extends QuickBluePlatform {
   }
 
   @override
-  void startScan() async {
+  void startScan([String? service]) async {
     await _ensureInitialized();
     _log('startScan invoke success');
 
@@ -95,7 +95,8 @@ class QuickBlueLinux extends QuickBluePlatform {
   }
 
   @override
-  Future<void> setNotifiable(String deviceId, String service, String characteristic, BleInputProperty bleInputProperty) {
+  Future<void> setNotifiable(
+      String deviceId, String service, String characteristic, BleInputProperty bleInputProperty) {
     // TODO: implement setNotifiable
     throw UnimplementedError();
   }
@@ -107,7 +108,8 @@ class QuickBlueLinux extends QuickBluePlatform {
   }
 
   @override
-  Future<void> writeValue(String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty) {
+  Future<void> writeValue(
+      String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty) {
     // TODO: implement writeValue
     throw UnimplementedError();
   }
@@ -123,8 +125,7 @@ extension BlueZDeviceExtension on BlueZDevice {
   Uint8List get manufacturerDataHead {
     if (manufacturerData.isEmpty) return Uint8List(0);
 
-    final sorted = manufacturerData.entries.toList()
-      ..sort((a, b) => a.key.id - b.key.id);
+    final sorted = manufacturerData.entries.toList()..sort((a, b) => a.key.id - b.key.id);
     return Uint8List.fromList(sorted.first.value);
   }
 }

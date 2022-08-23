@@ -12,8 +12,7 @@ export 'models.dart';
 
 typedef QuickLogger = Logger;
 
-typedef OnConnectionChanged = void Function(
-    String deviceId, BlueConnectionState state);
+typedef OnConnectionChanged = void Function(String deviceId, BlueConnectionState state);
 
 typedef OnServiceDiscovered = void Function(String deviceId, String serviceId, List<String> characteristicIds);
 
@@ -37,7 +36,7 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   Future<bool> isBluetoothAvailable();
 
-  void startScan();
+  void startScan([String? service]);
 
   void stopScan();
 
@@ -59,7 +58,8 @@ abstract class QuickBluePlatform extends PlatformInterface {
 
   Future<void> readValue(String deviceId, String service, String characteristic);
 
-  Future<void> writeValue(String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty);
+  Future<void> writeValue(
+      String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty);
 
   Future<int> requestMtu(String deviceId, int expectedMtu);
 }

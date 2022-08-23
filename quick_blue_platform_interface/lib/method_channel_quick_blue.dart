@@ -33,15 +33,15 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  void startScan() {
-    _method.invokeMethod('startScan')
+  void startScan([String? service]) {
+    _method
+        .invokeMethod('startScan', service != null ? {'service': service} : null)
         .then((_) => print('startScan invokeMethod success'));
   }
 
   @override
   void stopScan() {
-    _method.invokeMethod('stopScan')
-        .then((_) => print('stopScan invokeMethod success'));
+    _method.invokeMethod('stopScan').then((_) => print('stopScan invokeMethod success'));
   }
 
   Stream<dynamic> _scanResultStream = _event_scanResult.receiveBroadcastStream({'name': 'scanResult'});
@@ -95,7 +95,8 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  Future<void> setNotifiable(String deviceId, String service, String characteristic, BleInputProperty bleInputProperty) async {
+  Future<void> setNotifiable(
+      String deviceId, String service, String characteristic, BleInputProperty bleInputProperty) async {
     _method.invokeMethod('setNotifiable', {
       'deviceId': deviceId,
       'service': service,
@@ -114,7 +115,8 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  Future<void> writeValue(String deviceId, String service, String characteristic, Uint8List value, BleOutputProperty bleOutputProperty) async {
+  Future<void> writeValue(String deviceId, String service, String characteristic, Uint8List value,
+      BleOutputProperty bleOutputProperty) async {
     _method.invokeMethod('writeValue', {
       'deviceId': deviceId,
       'service': service,
