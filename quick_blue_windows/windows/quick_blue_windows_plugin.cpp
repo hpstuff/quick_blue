@@ -151,6 +151,8 @@ class QuickBlueWindowsPlugin : public flutter::Plugin, public flutter::StreamHan
 
   std::map<uint64_t, std::unique_ptr<BluetoothDeviceAgent>> connectedDevices{};
 
+  std::string filterService = "";
+
   winrt::fire_and_forget ConnectAsync(uint64_t bluetoothAddress);
   void BluetoothLEDevice_ConnectionStatusChanged(BluetoothLEDevice sender, IInspectable args);
   void CleanConnection(uint64_t bluetoothAddress);
@@ -225,7 +227,16 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
   } else if (method_name.compare("startScan") == 0) {
     if (!bluetoothLEWatcher) {
       bluetoothLEWatcher = BluetoothLEAdvertisementWatcher();
+      bluetoothLEWatcher.AllowExtendedAdvertisements(true);
+      bluetoothLEWatcher.ScanningMode(BluetoothLEScanningMode::Active);
       bluetoothLEWatcherReceivedToken = bluetoothLEWatcher.Received({ this, &QuickBlueWindowsPlugin::BluetoothLEWatcher_Received });
+    }
+    if (!method_call.arguments()->IsNull()) {
+        auto args = std::get<EncodableMap>(*method_call.arguments());
+        if (args.count(EncodableValue("service")) > 0) {
+            auto service = std::get<std::string>(args[EncodableValue("service")]);
+            filterService = service;
+        }
     }
     bluetoothLEWatcher.Start();
     result->Success(nullptr);
@@ -234,6 +245,7 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
       bluetoothLEWatcher.Stop();
       bluetoothLEWatcher.Received(bluetoothLEWatcherReceivedToken);
     }
+    filterService = "";
     bluetoothLEWatcher = nullptr;
     result->Success(nullptr);
   } else if (method_name.compare("connect") == 0) {
@@ -338,10 +350,25 @@ void QuickBlueWindowsPlugin::BluetoothLEWatcher_Received(
 }
 
 winrt::fire_and_forget QuickBlueWindowsPlugin::SendScanResultAsync(BluetoothLEAdvertisementReceivedEventArgs args) {
-  for (auto s : args.Advertisement().ServiceUuids()) {
-    OutputDebugString((L"Received Bluetooth service:" + winrt::to_hstring(s.toString()));
-  }
+  auto services = args.Advertisement().ServiceUuids();
 
+  if (filterService != "") {
+      if (services.Size() == 0) {
+          return;
+      }
+      bool service_available = false;
+      for (auto uuid : services) {
+          OutputDebugString((L"Received Bluetooth service UUID: " + winrt::to_hstring(uuid) + L", \n").c_str());
+          if (to_uuidstr(uuid) == filterService) {
+              service_available = true;
+          }
+      }
+
+      if (!service_available) {
+          return;
+      }
+  }
+  
   auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(args.BluetoothAddress());
   auto name = device ? device.Name() : args.Advertisement().LocalName();
   OutputDebugString((L"Received BluetoothAddress:" + winrt::to_hstring(args.BluetoothAddress())

@@ -74,8 +74,8 @@ class _MyAppState extends State<MyApp> {
         RaisedButton(
           child: Text('startScan'),
           onPressed: () {
-            //QuickBlue.startScan();
-            QuickBlue.startScan("0000fe79-0000-1000-8000-00805f9b34fb");
+            QuickBlue.startScan();
+            //QuickBlue.startScan("0000fe79-0000-1000-8000-00805f9b34fb");
           },
         ),
         RaisedButton(
@@ -95,7 +95,8 @@ class _MyAppState extends State<MyApp> {
       child: ListView.separated(
         itemBuilder: (context, index) => ListTile(
           title: Text('${_scanResults[index].name}(${_scanResults[index].rssi})'),
-          subtitle: Text(_scanResults[index].deviceId),
+          subtitle: Text(
+              '${_scanResults[index].deviceId} (${_scanResults[index].manufacturerDataHead}, ${_scanResults[index].manufacturerData})'),
           onTap: () {
             Navigator.push(
                 context,
