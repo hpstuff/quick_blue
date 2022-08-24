@@ -5,6 +5,7 @@ import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
 import android.os.Handler
@@ -70,10 +71,12 @@ class QuickBluePlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHand
       }
       "startScan" -> {
         val service = call.argument<String>("service")
-        if (service == null) {
+        Log.v(TAG, "startScan: $service")
+        if (service != null) {
           val uuid = UUID.fromString(service)
           val scanFilter = ScanFilter.Builder().setServiceUuid(ParcelUuid(uuid)).build()
-          bluetoothManager.adapter.bluetoothLeScanner?.startScan(listOf(scanFilter), null, scanCallback)
+          val settings = ScanSettings.Builder();
+          bluetoothManager.adapter.bluetoothLeScanner?.startScan(listOf(scanFilter), settings.build(), scanCallback)
         }else {
           bluetoothManager.adapter.bluetoothLeScanner?.startScan(scanCallback)
         }
