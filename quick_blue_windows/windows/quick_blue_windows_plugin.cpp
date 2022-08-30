@@ -151,7 +151,7 @@ class QuickBlueWindowsPlugin : public flutter::Plugin, public flutter::StreamHan
 
   std::map<uint64_t, std::unique_ptr<BluetoothDeviceAgent>> connectedDevices{};
 
-  std::string filterService = "";
+  std::vector<std::string> filterServices;
 
   winrt::fire_and_forget ConnectAsync(uint64_t bluetoothAddress);
   void BluetoothLEDevice_ConnectionStatusChanged(BluetoothLEDevice sender, IInspectable args);
@@ -233,9 +233,9 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
     }
     if (!method_call.arguments()->IsNull()) {
         auto args = std::get<EncodableMap>(*method_call.arguments());
-        if (args.count(EncodableValue("service")) > 0) {
-            auto service = std::get<std::string>(args[EncodableValue("service")]);
-            filterService = service;
+        if (args.count(EncodableValue("services")) > 0) {
+            auto services = std::get<std::vector<std::string>>(args[EncodableValue("services")]);
+            filterServices = services;
         }
     }
     bluetoothLEWatcher.Start();
@@ -245,7 +245,7 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
       bluetoothLEWatcher.Stop();
       bluetoothLEWatcher.Received(bluetoothLEWatcherReceivedToken);
     }
-    filterService = "";
+    filterServices.clear();
     bluetoothLEWatcher = nullptr;
     result->Success(nullptr);
   } else if (method_name.compare("connect") == 0) {
@@ -352,14 +352,14 @@ void QuickBlueWindowsPlugin::BluetoothLEWatcher_Received(
 winrt::fire_and_forget QuickBlueWindowsPlugin::SendScanResultAsync(BluetoothLEAdvertisementReceivedEventArgs args) {
   auto services = args.Advertisement().ServiceUuids();
 
-  if (filterService != "") {
+  if (filterServices.empty() == false) {
       if (services.Size() == 0) {
           return;
       }
       bool service_available = false;
       for (auto uuid : services) {
           OutputDebugString((L"Received Bluetooth service UUID: " + winrt::to_hstring(uuid) + L", \n").c_str());
-          if (to_uuidstr(uuid) == filterService) {
+          if (std::find(filterService.begin(), filterService.end(), to_uuidstr(uuid)) != filterService.end()) {
               service_available = true;
           }
       }

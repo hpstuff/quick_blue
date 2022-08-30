@@ -75,7 +75,7 @@ class _MyAppState extends State<MyApp> {
           child: Text('startScan'),
           onPressed: () {
             QuickBlue.startScan();
-            //QuickBlue.startScan("0000fe79-0000-1000-8000-00805f9b34fb");
+            //QuickBlue.startScan(["0000fe79-0000-1000-8000-00805f9b34fb"]);
           },
         ),
         RaisedButton(

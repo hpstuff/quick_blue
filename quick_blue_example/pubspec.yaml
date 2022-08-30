@@ -35,6 +35,8 @@ dev_dependencies:
     sdk: flutter
 
 dependency_overrides:
+  quick_blue:
+    path: ../quick_blue
   quick_blue_platform_interface:
     path: ../quick_blue_platform_interface
   quick_blue_windows:

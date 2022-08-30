@@ -68,8 +68,8 @@ public class QuickBlueMacosPlugin: NSObject, FlutterPlugin {
     case "startScan":
       var services: [CBUUID]? = nil
       if  let arguments = call.arguments as? Dictionary<String, Any> {
-        if let service = arguments["service"] as? String {
-          services = [CBUUID.init(string: service)]
+        if let uuids = arguments["services"] as? Array<String> {
+          services = uuids.map { CBUUID.init(string: $0) }
         }
       }
       

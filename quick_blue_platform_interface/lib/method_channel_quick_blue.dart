@@ -33,9 +33,9 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
   }
 
   @override
-  void startScan([String? service]) {
+  void startScan([List<String>? services]) {
     _method
-        .invokeMethod('startScan', service != null ? {'service': service} : null)
+        .invokeMethod('startScan', services != null && services.isNotEmpty ? {'services': services} : null)
         .then((_) => print('startScan invokeMethod success'));
   }
 
