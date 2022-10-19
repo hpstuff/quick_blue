@@ -72,6 +72,17 @@ public class QuickBlueMacosPlugin: NSObject, FlutterPlugin {
           services = uuids.map { CBUUID.init(string: $0) }
         }
       }
+
+      let peripherals = manager.retrieveConnectedPeripherals(withServices: services!);
+        
+      for peripheral in peripherals {
+        scanResultSink?([
+          "name": peripheral.name ?? "",
+          "deviceId": peripheral.uuid.uuidString,
+          "manufacturerData": Data(),
+          "rssi": -1,
+        ])
+      }
       
       manager.scanForPeripherals(withServices: services)
       result(nil)
