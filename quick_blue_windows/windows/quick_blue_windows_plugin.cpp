@@ -234,8 +234,13 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
     if (!method_call.arguments()->IsNull()) {
         auto args = std::get<EncodableMap>(*method_call.arguments());
         if (args.count(EncodableValue("services")) > 0) {
-            auto services = std::get<std::vector<std::string>>(args[EncodableValue("services")]);
-            filterServices = services;
+            auto service = std::get<EncodableList>(args[EncodableValue("services")]);
+            filterServices.reserve(service.size());
+            std::transform(service.begin(), service.end(),
+                std::back_inserter(filterServices),
+                [](const EncodableValue& encoded) {
+                    return std::get<std::string>(encoded);
+                });
         }
     }
     bluetoothLEWatcher.Start();
@@ -359,7 +364,7 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::SendScanResultAsync(BluetoothLEAd
       bool service_available = false;
       for (auto uuid : services) {
           OutputDebugString((L"Received Bluetooth service UUID: " + winrt::to_hstring(uuid) + L", \n").c_str());
-          if (std::find(filterService.begin(), filterService.end(), to_uuidstr(uuid)) != filterService.end()) {
+          if (std::find(filterServices.begin(), filterServices.end(), to_uuidstr(uuid)) != filterServices.end()) {
               service_available = true;
           }
       }
