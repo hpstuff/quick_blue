@@ -92,9 +92,13 @@ public class QuickBlueMacosPlugin: NSObject, FlutterPlugin {
     case "connect":
       let arguments = call.arguments as! Dictionary<String, Any>
       let deviceId = arguments["deviceId"] as! String
-      guard let peripheral = discoveredPeripherals[deviceId] else {
+      let peripherals = manager.retrievePeripherals(withIdentifiers: [UUID(uuidString: deviceId)!])
+      guard let peripheral = discoveredPeripherals[deviceId] ?? peripherals.first else {
         result(FlutterError(code: "IllegalArgument", message: "Unknown deviceId:\(deviceId)", details: nil))
         return
+      }
+      if (discoveredPeripherals[deviceId] == nil && peripherals.first != nil) {
+        discoveredPeripherals[deviceId] = peripheral
       }
       peripheral.delegate = self
       manager.connect(peripheral)
@@ -176,6 +180,14 @@ public class QuickBlueMacosPlugin: NSObject, FlutterPlugin {
 extension QuickBlueMacosPlugin: CBCentralManagerDelegate {
   public func centralManagerDidUpdateState(_ central: CBCentralManager) {
     print("centralManagerDidUpdateState \(central.state.rawValue)")
+  }
+
+  public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+    print("centralManager:didConnect \(peripheral.uuid.uuidString) error: \(String(describing: error))")
+    messageConnector.sendMessage([
+      "deviceId": peripheral.uuid.uuidString,
+      "ConnectionState": "error",
+    ])
   }
 
   public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
