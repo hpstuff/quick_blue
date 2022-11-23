@@ -75,7 +75,12 @@ class _MyAppState extends State<MyApp> {
           child: Text('startScan'),
           onPressed: () {
             //QuickBlue.startScan();
-            QuickBlue.startScan(["0000fe79-0000-1000-8000-00805f9b34fb", "0000fd66-0000-1000-8000-00805f9b34fb"]);
+            QuickBlue.isBluetoothAvailable().then((isGranted) {
+              if (isGranted) {
+                const ADVERTISE_SERVICE_UUID = "0000fe79-0000-1000-8000-00805f9b34fb";
+                QuickBlue.startScan([ADVERTISE_SERVICE_UUID]);
+              }
+            });
           },
         ),
         RaisedButton(

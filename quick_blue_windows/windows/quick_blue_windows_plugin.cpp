@@ -89,28 +89,39 @@ struct BluetoothDeviceAgent {
 
   IAsyncOperation<GattDeviceService> GetServiceAsync(std::string service) {
     if (gattServices.count(service) == 0) {
-      auto serviceResult = co_await device.GetGattServicesAsync();
-      if (serviceResult.Status() != GattCommunicationStatus::Success)
-        co_return nullptr;
+      try {
+        auto serviceResult = co_await device.GetGattServicesAsync();
+        
+        if (serviceResult.Status() != GattCommunicationStatus::Success)
+            co_return nullptr;
 
-      for (auto s : serviceResult.Services())
-        if (to_uuidstr(s.Uuid()) == service)
-          gattServices.insert(std::make_pair(service, s));
+        for (auto s:serviceResult.Services())
+            if (to_uuidstr(s.Uuid()) == service)
+                gattServices.insert(std::make_pair(service, s));
+      }
+      catch (...) {
+          co_return nullptr;
+      }
     }
     co_return gattServices.at(service);
   }
 
   IAsyncOperation<GattCharacteristic> GetCharacteristicAsync(std::string service, std::string characteristic) {
     if (gattCharacteristics.count(characteristic) == 0) {
-      auto gattService = co_await GetServiceAsync(service);
+        try {
+            auto gattService = co_await GetServiceAsync(service);
 
-      auto characteristicResult = co_await gattService.GetCharacteristicsAsync();
-      if (characteristicResult.Status() != GattCommunicationStatus::Success)
-        co_return nullptr;
+            auto characteristicResult = co_await gattService.GetCharacteristicsAsync();
+            if (characteristicResult.Status() != GattCommunicationStatus::Success)
+                co_return nullptr;
 
-      for (auto c : characteristicResult.Characteristics())
-        if (to_uuidstr(c.Uuid()) == characteristic)
-          gattCharacteristics.insert(std::make_pair(characteristic, c));
+            for (auto c : characteristicResult.Characteristics())
+                if (to_uuidstr(c.Uuid()) == characteristic)
+                    gattCharacteristics.insert(std::make_pair(characteristic, c));
+        }
+        catch (...) {
+          co_return nullptr;
+      }
     }
     co_return gattCharacteristics.at(characteristic);
   }
@@ -146,7 +157,7 @@ class QuickBlueWindowsPlugin : public flutter::Plugin, public flutter::StreamHan
 
   BluetoothLEAdvertisementWatcher bluetoothLEWatcher{ nullptr };
   winrt::event_token bluetoothLEWatcherReceivedToken;
-  void BluetoothLEWatcher_Received(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args);
+  winrt::fire_and_forget BluetoothLEWatcher_Received(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args);
   winrt::fire_and_forget SendScanResultAsync(BluetoothLEAdvertisementReceivedEventArgs args);
 
   std::map<uint64_t, std::unique_ptr<BluetoothDeviceAgent>> connectedDevices{};
@@ -288,6 +299,7 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
 
     SetNotifiableAsync(*it->second, service, characteristic, bleInputProperty);
     result->Success(nullptr);
+    return;
   } else if (method_name.compare("requestMtu") == 0) {
     auto args = std::get<EncodableMap>(*method_call.arguments());
     auto deviceId = std::get<std::string>(args[EncodableValue("deviceId")]);
@@ -348,10 +360,10 @@ std::vector<uint8_t> parseManufacturerDataHead(BluetoothLEAdvertisement advertis
   return result;
 }
 
-void QuickBlueWindowsPlugin::BluetoothLEWatcher_Received(
+winrt::fire_and_forget QuickBlueWindowsPlugin::BluetoothLEWatcher_Received(
     BluetoothLEAdvertisementWatcher sender,
     BluetoothLEAdvertisementReceivedEventArgs args) {
-  SendScanResultAsync(args);
+  return SendScanResultAsync(args);
 }
 
 winrt::fire_and_forget QuickBlueWindowsPlugin::SendScanResultAsync(BluetoothLEAdvertisementReceivedEventArgs args) {
@@ -514,6 +526,7 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::SetNotifiableAsync(BluetoothDevic
   }
 }
 
+
 winrt::fire_and_forget QuickBlueWindowsPlugin::ReadValueAsync(BluetoothDeviceAgent& bluetoothDeviceAgent, std::string service, std::string characteristic) {
   auto gattCharacteristic = co_await bluetoothDeviceAgent.GetCharacteristicAsync(service, characteristic);
   auto readValueResult = co_await gattCharacteristic.ReadValueAsync();
@@ -529,10 +542,10 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::ReadValueAsync(BluetoothDeviceAge
 }
 
 winrt::fire_and_forget QuickBlueWindowsPlugin::WriteValueAsync(BluetoothDeviceAgent& bluetoothDeviceAgent, std::string service, std::string characteristic, std::vector<uint8_t> value, std::string bleOutputProperty) {
-  auto gattCharacteristic = co_await bluetoothDeviceAgent.GetCharacteristicAsync(service, characteristic);
-  auto writeOption = bleOutputProperty.compare("withoutResponse") == 0 ? GattWriteOption::WriteWithoutResponse : GattWriteOption::WriteWithResponse;
-  auto writeValueStatus = co_await gattCharacteristic.WriteValueAsync(from_bytevc(value), writeOption);
-  OutputDebugString((L"WriteValueAsync " + winrt::to_hstring(characteristic) + L", " + winrt::to_hstring(to_hexstring(value)) + L", " + winrt::to_hstring((int32_t)writeValueStatus) + L"\n").c_str());
+    auto gattCharacteristic = co_await bluetoothDeviceAgent.GetCharacteristicAsync(service, characteristic);
+    auto writeOption = bleOutputProperty.compare("withoutResponse") == 0 ? GattWriteOption::WriteWithoutResponse : GattWriteOption::WriteWithResponse;
+    auto writeValueStatus = co_await gattCharacteristic.WriteValueAsync(from_bytevc(value), writeOption);
+    OutputDebugString((L"WriteValueAsync " + winrt::to_hstring(characteristic) + L", " + winrt::to_hstring(to_hexstring(value)) + L", " + winrt::to_hstring((int32_t)writeValueStatus) + L"\n").c_str());
 }
 
 void QuickBlueWindowsPlugin::GattCharacteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args) {

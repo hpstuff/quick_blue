@@ -15,6 +15,10 @@ const WOODEMI_SERV__COMMAND = '57444d01-$WOODEMI_SUFFIX';
 const WOODEMI_CHAR__COMMAND_REQUEST = '57444e02-$WOODEMI_SUFFIX';
 const WOODEMI_CHAR__COMMAND_RESPONSE = WOODEMI_CHAR__COMMAND_REQUEST;
 
+const PARSER_DATA_SERVICE_UUID = "38eb4a80-c570-11e3-9507-0002a5d5c51b";
+const PARSER_DATA_FROM_PRINTER_CHAR_UUID = "38eb4a81-c570-11e3-9507-0002a5d5c51b";
+const PARSER_DATA_TO_PRINTER_CHAR_UUID = "38eb4a82-c570-11e3-9507-0002a5d5c51b";
+
 const WOODEMI_MTU_WUART = 247;
 
 class PeripheralDetailPage extends StatefulWidget {
@@ -57,11 +61,9 @@ class _PeripheralDetailPageState extends State<PeripheralDetailPage> {
     print('_handleValueChange $deviceId, $characteristicId, ${hex.encode(value)}');
   }
 
-  final serviceUUID = TextEditingController(text: WOODEMI_SERV__COMMAND);
-  final characteristicUUID =
-      TextEditingController(text: WOODEMI_CHAR__COMMAND_REQUEST);
-  final binaryCode = TextEditingController(
-      text: hex.encode([0x01, 0x0A, 0x00, 0x00, 0x00, 0x01]));
+  final serviceUUID = TextEditingController(text: PARSER_DATA_SERVICE_UUID);
+  final characteristicUUID = TextEditingController(text: PARSER_DATA_TO_PRINTER_CHAR_UUID);
+  final binaryCode = TextEditingController(text: hex.encode([0x01, 0x0A, 0x00, 0x00, 0x00, 0x01]));
 
   @override
   Widget build(BuildContext context) {
@@ -102,8 +104,7 @@ class _PeripheralDetailPageState extends State<PeripheralDetailPage> {
           RaisedButton(
             child: Text('setNotifiable'),
             onPressed: () {
-              QuickBlue.setNotifiable(
-                  widget.deviceId, WOODEMI_SERV__COMMAND, WOODEMI_CHAR__COMMAND_RESPONSE,
+              QuickBlue.setNotifiable(widget.deviceId, PARSER_DATA_SERVICE_UUID, PARSER_DATA_FROM_PRINTER_CHAR_UUID,
                   BleInputProperty.indication);
             },
           ),
@@ -130,17 +131,13 @@ class _PeripheralDetailPageState extends State<PeripheralDetailPage> {
             onPressed: () {
               var value = Uint8List.fromList(hex.decode(binaryCode.text));
               QuickBlue.writeValue(
-                  widget.deviceId, serviceUUID.text, characteristicUUID.text,
-                  value, BleOutputProperty.withResponse);
+                  widget.deviceId, serviceUUID.text, characteristicUUID.text, value, BleOutputProperty.withResponse);
             },
           ),
           RaisedButton(
             child: Text('readValue battery'),
             onPressed: () async {
-              await QuickBlue.readValue(
-                  widget.deviceId,
-                  GSS_SERV__BATTERY,
-                  GSS_CHAR__BATTERY_LEVEL);
+              await QuickBlue.readValue(widget.deviceId, GSS_SERV__BATTERY, GSS_CHAR__BATTERY_LEVEL);
             },
           ),
           RaisedButton(
