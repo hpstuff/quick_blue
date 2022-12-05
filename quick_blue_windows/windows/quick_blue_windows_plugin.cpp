@@ -441,18 +441,16 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::PairAsync(uint64_t bluetoothAddre
     auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(bluetoothAddress);
     if (device != nullptr) {
       DeviceInformationPairing pairing = device.DeviceInformation().Pairing();
-      if (!pairing.CanPair()) {
-        if (pairing.IsPaired()) {
-          message_connector_->Send(EncodableMap{
-            {"deviceId", std::to_string(bluetoothAddress)},
-            {"ConnectionState", "alreadyPaired"},
-          });
-        } else {
-          message_connector_->Send(EncodableMap{
-            {"deviceId", std::to_string(bluetoothAddress)},
-            {"ConnectionState", "cannotPair"},
-          });
-        }
+      if (pairing.IsPaired()) {
+        message_connector_->Send(EncodableMap{
+          {"deviceId", std::to_string(bluetoothAddress)},
+          {"ConnectionState", "alreadyPaired"},
+        });
+      } else {
+        message_connector_->Send(EncodableMap{
+          {"deviceId", std::to_string(bluetoothAddress)},
+          {"ConnectionState", "cannotPair"},
+        });
       }
     }
     co_return;
