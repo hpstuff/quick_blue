@@ -9,6 +9,7 @@
 #include <winrt/Windows.Devices.Bluetooth.h>
 #include <winrt/Windows.Devices.Bluetooth.Advertisement.h>
 #include <winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h>
+#include <winrt/Windows.Devices.Enumeration.h>
 
 #include <flutter/method_channel.h>
 #include <flutter/basic_message_channel.h>
@@ -36,6 +37,7 @@ using namespace winrt::Windows::Devices::Radios;
 using namespace winrt::Windows::Devices::Bluetooth;
 using namespace winrt::Windows::Devices::Bluetooth::Advertisement;
 using namespace winrt::Windows::Devices::Bluetooth::GenericAttributeProfile;
+using namespace winrt::Windows::Devices::Enumeration;
 
 using flutter::EncodableValue;
 using flutter::EncodableMap;
@@ -165,6 +167,8 @@ class QuickBlueWindowsPlugin : public flutter::Plugin, public flutter::StreamHan
   std::vector<std::string> filterServices;
 
   winrt::fire_and_forget ConnectAsync(uint64_t bluetoothAddress);
+  winrt::fire_and_forget PairAsync(uint64_t bluetoothAddress, DevicePairingProtectionLevel level);
+  void BluetoothLEDevice_PairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args);
   void BluetoothLEDevice_ConnectionStatusChanged(BluetoothLEDevice sender, IInspectable args);
   void CleanConnection(uint64_t bluetoothAddress);
   winrt::fire_and_forget DiscoverServicesAsync(BluetoothDeviceAgent &bluetoothDeviceAgent);
@@ -268,6 +272,11 @@ void QuickBlueWindowsPlugin::HandleMethodCall(
     auto args = std::get<EncodableMap>(*method_call.arguments());
     auto deviceId = std::get<std::string>(args[EncodableValue("deviceId")]);
     ConnectAsync(std::stoull(deviceId));
+    result->Success(nullptr);
+  } else if (method_name.compare("pair") == 0) {
+    auto args = std::get<EncodableMap>(*method_call.arguments());
+    auto deviceId = std::get<std::string>(args[EncodableValue("deviceId")]);
+    PairAsync(std::stoull(deviceId), DevicePairingProtectionLevel::Encryption);
     result->Success(nullptr);
   } else if (method_name.compare("disconnect") == 0) {
     auto args = std::get<EncodableMap>(*method_call.arguments());
@@ -428,6 +437,43 @@ std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> QuickBlueWindowsPlu
   return nullptr;
 }
 
+winrt::fire_and_forget QuickBlueWindowsPlugin::PairAsync(uint64_t bluetoothAddress, DevicePairingProtectionLevel level) {
+    auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(bluetoothAddress);
+    if (device != nullptr) {
+      DeviceInformationPairing pairing = device.DeviceInformation().Pairing();
+      if (pairing.CanPair()) {
+          try {
+              pairing.Custom().PairingRequested({ this, &QuickBlueWindowsPlugin::BluetoothLEDevice_PairingRequested });
+              auto result = co_await pairing.Custom().PairAsync(DevicePairingKinds::ConfirmOnly, DevicePairingProtectionLevel::EncryptionAndAuthentication);
+              if (result.Status() != DevicePairingResultStatus::Paired && result.Status() != DevicePairingResultStatus::AlreadyPaired) {
+                  OutputDebugString((L"PairAsync error: " + winrt::to_hstring((int32_t)result.Status()) + L"\n").c_str());
+              } else {
+                message_connector_->Send(EncodableMap{
+                  {"deviceId", std::to_string(bluetoothAddress)},
+                  {"ConnectionState", "paired"},
+                });
+              }
+          }
+          catch (winrt::hresult_error const& ex) {
+              OutputDebugString((L"PairAsync " + ex.message() + L"\n").c_str());
+          }
+      } else {
+        if (pairing.IsPaired()) {
+          message_connector_->Send(EncodableMap{
+            {"deviceId", std::to_string(bluetoothAddress)},
+            {"ConnectionState", "alreadyPaired"},
+          });
+        } else {
+          message_connector_->Send(EncodableMap{
+            {"deviceId", std::to_string(bluetoothAddress)},
+            {"ConnectionState", "cannotPair"},
+          });
+        }
+      }
+    }
+    co_return;
+}
+
 winrt::fire_and_forget QuickBlueWindowsPlugin::ConnectAsync(uint64_t bluetoothAddress) {
   auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(bluetoothAddress);
   auto servicesResult = co_await device.GetGattServicesAsync();
@@ -448,6 +494,11 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::ConnectAsync(uint64_t bluetoothAd
     {"deviceId", std::to_string(bluetoothAddress)},
     {"ConnectionState", "connected"},
   });
+  PairAsync(bluetoothAddress, DevicePairingProtectionLevel::Encryption);
+}
+
+void QuickBlueWindowsPlugin::BluetoothLEDevice_PairingRequested(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args) {
+    args.Accept();
 }
 
 void QuickBlueWindowsPlugin::BluetoothLEDevice_ConnectionStatusChanged(BluetoothLEDevice sender, IInspectable args) {

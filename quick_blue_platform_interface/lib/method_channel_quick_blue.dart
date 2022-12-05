@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -129,6 +130,14 @@ class MethodChannelQuickBlue extends QuickBluePlatform {
       // Characteristic sometimes unavailable on Android
       throw onError;
     });
+  }
+
+  @override
+  void pair(String deviceId) {
+    if(!Platform.isWindows)throw UnimplementedError();
+    _method.invokeMethod('pair', {
+      'deviceId': deviceId,
+    }).then((_) => _log('pair invokeMethod success'));
   }
 
   // FIXME Close

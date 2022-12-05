@@ -1,6 +1,9 @@
 class BlueConnectionState {
   static const disconnected = BlueConnectionState._('disconnected');
   static const connected = BlueConnectionState._('connected');
+  static const paired = BlueConnectionState._('paired');
+  static const cannotPair = BlueConnectionState._('cannotPair');
+  static const alreadyPaired = BlueConnectionState._('alreadyPaired');
 
   final String value;
 
@@ -11,6 +14,12 @@ class BlueConnectionState {
       return disconnected;
     } else if (value == connected.value) {
       return connected;
+    } else if (value == paired.value) {
+      return paired;
+    } else if (value == cannotPair.value) {
+      return cannotPair;  
+    } else if (value == alreadyPaired.value) {
+      return alreadyPaired;  
     }
     throw ArgumentError.value(value);
   }
