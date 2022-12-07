@@ -444,12 +444,12 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::PairAsync(uint64_t bluetoothAddre
       if (pairing.IsPaired()) {
         message_connector_->Send(EncodableMap{
           {"deviceId", std::to_string(bluetoothAddress)},
-          {"ConnectionState", "alreadyPaired"},
+          {"ConnectionState", "already_paired"},
         });
       } else {
         message_connector_->Send(EncodableMap{
           {"deviceId", std::to_string(bluetoothAddress)},
-          {"ConnectionState", "cannotPair"},
+          {"ConnectionState", "not_paired"},
         });
       }
     }
@@ -458,6 +458,15 @@ winrt::fire_and_forget QuickBlueWindowsPlugin::PairAsync(uint64_t bluetoothAddre
 
 winrt::fire_and_forget QuickBlueWindowsPlugin::ConnectAsync(uint64_t bluetoothAddress) {
   auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(bluetoothAddress);
+  DeviceAccessStatus deviceAccess = co_await device.RequestAccessAsync();
+  if (deviceAccess != DeviceAccessStatus::Allowed) {
+      OutputDebugString(L"device.RequestAccessAsync() is not Allowed");
+      message_connector_->Send(EncodableMap{
+        {"deviceId", std::to_string(bluetoothAddress)},
+        {"ConnectionState", "rejected"},
+      });
+      co_return;
+  }
   auto servicesResult = co_await device.GetGattServicesAsync();
   if (servicesResult.Status() != GattCommunicationStatus::Success) {
     OutputDebugString((L"GetGattServicesAsync error: " + winrt::to_hstring((int32_t)servicesResult.Status()) + L"\n").c_str());
